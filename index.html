@@ -22,9 +22,9 @@
   video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
   video{transform:scaleX(-1);} canvas{transform:scaleX(-1);}
   .stage.rear video,.stage.rear canvas{transform:none;}
-  .hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;pointer-events:none;}
-  .pill{background:rgba(22,23,26,.78);backdrop-filter:blur(4px);border:1px solid var(--line);border-radius:10px;padding:7px 12px;}
-  .pill .v{font-family:'JetBrains Mono';font-weight:700;font-size:22px;line-height:1;color:var(--accent);}
+  .hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;}
+  .pill{background:rgba(22,23,26,.78);backdrop-filter:blur(4px);border:1px solid var(--line);border-radius:10px;padding:7px 11px;}
+  .pill .v{font-family:'JetBrains Mono';font-weight:700;font-size:20px;line-height:1;color:var(--accent);}
   .pill .l{font-family:'Oswald';font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
   .framewarn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(22,23,26,.85);
     border:1px solid var(--warn);color:#f2a468;border-radius:10px;padding:8px 16px;font-family:'Oswald';
@@ -38,7 +38,7 @@
   .cue.warn{border-color:var(--warn);color:#f2a468;}
 
   .controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px;}
-  select,button{font-family:'Oswald';letter-spacing:.05em;text-transform:uppercase;font-size:14px;font-weight:600;
+  select,button,input{font-family:'Oswald';letter-spacing:.05em;text-transform:uppercase;font-size:14px;font-weight:600;
     border-radius:10px;padding:13px 10px;border:1px solid var(--line);}
   select{background:var(--panel2);color:var(--ink);width:100%;}
   button{cursor:pointer;}
@@ -58,10 +58,11 @@
   .seg{display:flex;gap:5px;}
   .seg button{padding:8px 12px;font-size:11.5px;background:var(--panel2);color:var(--muted);border-radius:8px;}
   .seg button[aria-pressed="true"]{background:var(--accent);color:#1a1a1a;border-color:var(--accent);}
+  .setting input[type=number]{width:84px;background:var(--panel2);color:var(--ink);font-family:'JetBrains Mono';text-align:center;padding:8px;}
 
-  table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
-  th,td{padding:6px 7px;text-align:center;border-bottom:1px solid var(--line);font-family:'JetBrains Mono';}
-  th{font-family:'Oswald';text-transform:uppercase;letter-spacing:.05em;font-size:10px;color:var(--muted);font-weight:600;}
+  table{border-collapse:collapse;width:100%;font-size:11.5px;margin-top:6px;}
+  th,td{padding:6px 5px;text-align:center;border-bottom:1px solid var(--line);font-family:'JetBrains Mono';white-space:nowrap;}
+  th{font-family:'Oswald';text-transform:uppercase;letter-spacing:.04em;font-size:9.5px;color:var(--muted);font-weight:600;}
   td.ok{color:#7ed99a;} td.no{color:#f2a468;}
   .verdict{font-size:13.5px;margin-top:10px;}
   .statusline{font-size:12px;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono';}
@@ -82,6 +83,7 @@
     <canvas id="overlay"></canvas>
     <div class="hud">
       <div class="pill"><div class="v" id="repCount">0</div><div class="l">Reps</div></div>
+      <div class="pill"><div class="v" id="speedV">–</div><div class="l">Bar m/s</div></div>
       <div class="pill"><div class="v" id="depthV">–</div><div class="l" id="depthL">Depth</div></div>
     </div>
     <div class="framewarn" id="framewarn">Move fully into frame</div>
@@ -91,6 +93,7 @@
   <div class="controls">
     <select id="lift">
       <option value="squat">Squat</option>
+      <option value="bench">Bench Press</option>
       <option value="deadlift">Deadlift</option>
     </select>
     <button class="ghost" id="flipBtn">Flip camera</button>
@@ -101,33 +104,30 @@
   <div class="card">
     <h2>Settings</h2>
     <div class="setting">
-      <div class="nm">Feedback mode<small>Live = cues during the set. Quiet = rep counts only, full report after.</small></div>
+      <div class="nm">Feedback mode<small>Live = cues during the set. Quiet = counts only, report after.</small></div>
       <div class="seg" id="segMode">
-        <button data-v="live" aria-pressed="true">Live</button>
-        <button data-v="quiet" aria-pressed="false">Quiet</button>
+        <button data-v="live">Live</button><button data-v="quiet">Quiet</button>
       </div>
     </div>
     <div class="setting">
-      <div class="nm">Voice<small>Spoken cues & rep counts through headphones</small></div>
-      <div class="seg" id="segVoice">
-        <button data-v="on" aria-pressed="true">On</button>
-        <button data-v="off" aria-pressed="false">Off</button>
-      </div>
+      <div class="nm">Voice<small>Spoken cues through headphones</small></div>
+      <div class="seg" id="segVoice"><button data-v="on">On</button><button data-v="off">Off</button></div>
     </div>
     <div class="setting">
-      <div class="nm">Depth standard<small>Comp = strict below parallel. Training = at parallel counts.</small></div>
-      <div class="seg" id="segDepth">
-        <button data-v="comp" aria-pressed="true">Comp</button>
-        <button data-v="train" aria-pressed="false">Training</button>
-      </div>
+      <div class="nm">Depth standard<small>Comp = strict below parallel (squat)</small></div>
+      <div class="seg" id="segDepth"><button data-v="comp">Comp</button><button data-v="train">Training</button></div>
     </div>
     <div class="setting">
-      <div class="nm">Cue chatter<small>How often it's allowed to talk mid-set</small></div>
-      <div class="seg" id="segChat">
-        <button data-v="low" aria-pressed="false">Low</button>
-        <button data-v="med" aria-pressed="true">Med</button>
-        <button data-v="high" aria-pressed="false">High</button>
-      </div>
+      <div class="nm">Cue chatter<small>How often it may talk mid-set</small></div>
+      <div class="seg" id="segChat"><button data-v="low">Low</button><button data-v="med">Med</button><button data-v="high">High</button></div>
+    </div>
+    <div class="setting">
+      <div class="nm">Velocity alerts<small>Live warning when bar speed drops ≥20%</small></div>
+      <div class="seg" id="segVBT"><button data-v="on">On</button><button data-v="off">Off</button></div>
+    </div>
+    <div class="setting">
+      <div class="nm">Your height<small>Calibrates bar speed to real m/s</small></div>
+      <div><input type="number" id="heightCm" inputmode="numeric"> <span style="color:var(--muted);font-size:12px">cm</span></div>
     </div>
   </div>
 
@@ -138,7 +138,8 @@
 
   <div class="card">
     <h2>Setup</h2>
-    <p><b>Side-on view</b>, whole body in frame, phone hip height, 2–4 m away, good light. The tracker pauses itself (and says so) when it loses your hips/knees.</p>
+    <p><b>Side-on</b>, full body in frame, 2–4 m away, good light. <b>Bench:</b> camera side-on at bench height; it tracks your visible arm — elbow ROM, lockout, press speed.</p>
+    <p><b>Bar speed</b> is estimated from wrist/hip movement scaled by your height — treat it as consistent-relative, not lab-grade. Tempo = eccentric / concentric seconds per rep.</p>
     <p>Training aid, not a spotter.</p>
   </div>
 </div>
@@ -148,131 +149,159 @@ import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@m
 
 const $=id=>document.getElementById(id);
 const video=$('cam'), canvas=$('overlay'), ctx=canvas.getContext('2d');
-let landmarker=null, running=false, stream=null, facing='user';
-let lift='squat';
+let landmarker=null, running=false, stream=null, facing='user', lift='squat';
 
-// ---- settings (persisted) ----
-const S = Object.assign({mode:'live',voice:'on',depth:'comp',chat:'med'}, JSON.parse(localStorage.getItem('ic-settings')||'{}'));
-function saveS(){ localStorage.setItem('ic-settings',JSON.stringify(S)); }
-function bindSeg(id,key){
-  const el=$(id);
-  el.querySelectorAll('button').forEach(b=>{
-    b.setAttribute('aria-pressed', b.dataset.v===S[key]?'true':'false');
-    b.onclick=()=>{S[key]=b.dataset.v;saveS();
-      el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===S[key]?'true':'false'));};
-  });
-}
-bindSeg('segMode','mode');bindSeg('segVoice','voice');bindSeg('segDepth','depth');bindSeg('segChat','chat');
+// ---- settings ----
+const S=Object.assign({mode:'live',voice:'on',depth:'comp',chat:'med',vbt:'on',height:178},
+  JSON.parse(localStorage.getItem('ic-settings')||'{}'));
+const saveS=()=>localStorage.setItem('ic-settings',JSON.stringify(S));
+function bindSeg(id,key){const el=$(id);el.querySelectorAll('button').forEach(b=>{
+  b.setAttribute('aria-pressed',b.dataset.v===S[key]?'true':'false');
+  b.onclick=()=>{S[key]=b.dataset.v;saveS();
+    el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===S[key]?'true':'false'));};});}
+bindSeg('segMode','mode');bindSeg('segVoice','voice');bindSeg('segDepth','depth');bindSeg('segChat','chat');bindSeg('segVBT','vbt');
+$('heightCm').value=S.height;
+$('heightCm').onchange=e=>{S.height=Math.max(120,Math.min(220,+e.target.value||178));e.target.value=S.height;saveS();};
 const chatGap=()=>({low:4500,med:2400,high:1300})[S.chat];
 
-// ---- speech ----
+// ---- speech & cues ----
 let lastSpeak=0,lastCueText='';
-function speak(text,rate=1.15){
-  if(S.voice!=='on'||!('speechSynthesis' in window))return;
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);u.rate=rate;speechSynthesis.speak(u);
-}
-function cue(text,{cls='',force=false,spoken=true}={}){
+function speak(t,rate=1.15){if(S.voice!=='on'||!('speechSynthesis'in window))return;
+  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=rate;speechSynthesis.speak(u);}
+function cue(text,{cls='',force=false}={}){
   const now=performance.now();
   if(!force&&(now-lastSpeak<chatGap()||text===lastCueText))return;
   lastSpeak=now;lastCueText=text;
   const c=$('cue');c.textContent=text;c.className='cue show '+cls;
   clearTimeout(cue._t);cue._t=setTimeout(()=>c.classList.remove('show'),1800);
-  if(spoken)speak(text);
-}
-// live-mode-only coaching cue
-function coach(text,opt={}){ if(S.mode==='live') cue(text,opt); }
+  speak(text);}
+const coach=(t,o={})=>{if(S.mode==='live')cue(t,o);};
 
-// ---- geometry & smoothing ----
+// ---- geometry, smoothing ----
 const angle=(a,b,c)=>{const v1={x:a.x-b.x,y:a.y-b.y},v2={x:c.x-b.x,y:c.y-b.y};
   const d=v1.x*v2.x+v1.y*v2.y,m=Math.hypot(v1.x,v1.y)*Math.hypot(v2.x,v2.y);
   return Math.acos(Math.min(1,Math.max(-1,d/m)))*180/Math.PI;};
 const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
-let smooth=null;
-const ALPHA=0.45; // EMA: higher = snappier, lower = smoother
-function smoothLm(L){
-  if(!smooth){smooth=L.map(p=>({...p}));return smooth;}
-  for(let i=0;i<L.length;i++){
-    smooth[i].x+= (L[i].x-smooth[i].x)*ALPHA;
-    smooth[i].y+= (L[i].y-smooth[i].y)*ALPHA;
-    smooth[i].visibility=L[i].visibility;
+let smooth=null;const ALPHA=0.45;
+function smoothLm(L){if(!smooth){smooth=L.map(p=>({...p}));return smooth;}
+  for(let i=0;i<L.length;i++){smooth[i].x+=(L[i].x-smooth[i].x)*ALPHA;smooth[i].y+=(L[i].y-smooth[i].y)*ALPHA;smooth[i].visibility=L[i].visibility;}
+  return smooth;}
+const KEYPTS={squat:[11,12,23,24,25,26,27,28],deadlift:[11,12,23,24,25,26,27,28],bench:[11,12,13,14,15,16]};
+function visibleEnough(L){const k=KEYPTS[lift];let v=0;k.forEach(i=>v+=L[i].visibility??1);return v/k.length>0.5;}
+// pick more-visible arm for bench
+function benchSide(L){const lv=(L[11].visibility+L[13].visibility+L[15].visibility)/3;
+  const rv=(L[12].visibility+L[14].visibility+L[16].visibility)/3;
+  return lv>=rv?{sh:11,el:13,wr:15}:{sh:12,el:14,wr:16};}
+
+// ---- velocity engine ----
+// scale: metres per normalized-unit, captured at set start
+let scaleM=null, lastY=null, lastT=null, velSm=0;
+function calibScale(L){
+  if(lift==='bench'){ // shoulder→hip ≈ 0.30 × height
+    const d=Math.hypot(mid(L[11],L[12]).x-mid(L[23],L[24]).x, mid(L[11],L[12]).y-mid(L[23],L[24]).y);
+    if(d>0.05) scaleM=(S.height/100*0.30)/d;
+  }else{ // standing: nose(0)→ankle ≈ 0.94 × height
+    const d=Math.abs(L[0].y-mid(L[27],L[28]).y);
+    if(d>0.3) scaleM=(S.height/100*0.94)/d;
   }
-  return smooth;
 }
-const KEYPTS=[11,12,23,24,25,26,27,28];
-function visibleEnough(L){
-  let v=0;KEYPTS.forEach(i=>v+=L[i].visibility??1);
-  return (v/KEYPTS.length)>0.55;
+function trackPoint(L){
+  if(lift==='squat')return mid(L[23],L[24]).y;
+  if(lift==='deadlift'){const a=L[15],b=L[16];return ((a.visibility>b.visibility)?a:b).y;}
+  const s=benchSide(L);return L[s.wr].y;
+}
+function velocity(L){ // +ve = moving UP, in m/s (if calibrated)
+  const y=trackPoint(L),t=performance.now();
+  if(lastY===null){lastY=y;lastT=t;return 0;}
+  const dt=(t-lastT)/1000;if(dt<=0)return velSm;
+  let v=-(y-lastY)/dt*(scaleM||1.7); // fallback rough scale
+  lastY=y;lastT=t;
+  velSm+= (v-velSm)*0.3;
+  return velSm;
 }
 
-// ---- per-rep state machine ----
+// ---- per-rep state ----
 let st={};
-function resetSet(){
-  smooth=null;
-  st={phase:'top',reps:0,startT:performance.now(),lastRepT:null,
-      reps_data:[],cur:null,lostFrames:0};
-  $('repCount').textContent='0';
-}
-function beginRep(){ st.cur={minKnee:999,maxLean:0,depthHit:false,minHipMargin:999,t0:performance.now()}; }
-function depthThreshold(){ return S.depth==='comp'? -0.012 : 0.004; } // hipY - kneeY must exceed (y grows downward; comp = clearly below)
+function resetSet(){smooth=null;lastY=null;velSm=0;scaleM=null;
+  st={phase:'top',reps:0,startT:performance.now(),reps_data:[],cur:null,lostFrames:0,calibFrames:0};
+  $('repCount').textContent='0';$('speedV').textContent='–';}
+function beginRep(){st.cur={minKnee:999,maxLean:0,depthHit:false,t0:performance.now(),tBottom:null,peakV:0,sumV:0,nV:0};}
+function bottomNow(){if(st.cur&&!st.cur.tBottom)st.cur.tBottom=performance.now();}
+function trackConVel(v){if(st.cur&&st.cur.tBottom&&v>0){st.cur.peakV=Math.max(st.cur.peakV,v);st.cur.sumV+=v;st.cur.nV++;
+  $('speedV').textContent=v.toFixed(2);}}
+const depthThr=()=>S.depth==='comp'?-0.012:0.004;
 
-function analyzeSquat(L){
+function analyzeSquat(L,v){
   const hip=mid(L[23],L[24]),knee=mid(L[25],L[26]),sh=mid(L[11],L[12]);
   const kneeAng=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
   const lean=Math.abs(Math.atan2(sh.x-hip.x,hip.y-sh.y))*180/Math.PI;
-  const margin=knee.y-hip.y; // negative = hip below knee
-  const below = margin < depthThreshold();
-  $('depthV').textContent=below?'✓':Math.round(kneeAng)+'°';
-  $('depthL').textContent=below?'Depth':'Knee °';
-
+  const below=(knee.y-hip.y)<depthThr();
+  $('depthV').textContent=below?'✓':Math.round(kneeAng)+'°';$('depthL').textContent=below?'Depth':'Knee °';
   if(st.phase==='top'&&kneeAng<148){st.phase='down';beginRep();}
   if(st.phase==='down'&&st.cur){
-    st.cur.minKnee=Math.min(st.cur.minKnee,kneeAng);
-    st.cur.maxLean=Math.max(st.cur.maxLean,lean);
-    st.cur.minHipMargin=Math.min(st.cur.minHipMargin,margin);
-    if(below&&!st.cur.depthHit){st.cur.depthHit=true;coach('Depth!',{cls:'good'});}
+    st.cur.minKnee=Math.min(st.cur.minKnee,kneeAng);st.cur.maxLean=Math.max(st.cur.maxLean,lean);
+    if(below&&!st.cur.depthHit){st.cur.depthHit=true;bottomNow();coach('Depth!',{cls:'good'});}
+    if(!st.cur.tBottom&&v>0.05)bottomNow(); // started moving up without depth
+    trackConVel(v);
     if(lean>58&&kneeAng<150)coach('Chest up',{cls:'warn'});
-    if(kneeAng>162){ // hysteresis: must rise well past descent trigger
-      st.phase='top';finishRep();
-    }
+    if(kneeAng>162){st.phase='top';finishRep();}
   }
 }
-function analyzeDeadlift(L){
+function analyzeBench(L,v){
+  const s=benchSide(L);
+  const elbow=angle(L[s.sh],L[s.el],L[s.wr]);
+  $('depthV').textContent=Math.round(elbow)+'°';$('depthL').textContent='Elbow °';
+  if(st.phase==='top'&&elbow<145){st.phase='down';beginRep();}
+  if(st.phase==='down'&&st.cur){
+    st.cur.minKnee=Math.min(st.cur.minKnee,elbow); // minKnee slot = min elbow
+    if(elbow<95)st.cur.depthHit=true; // full ROM proxy
+    if(!st.cur.tBottom&&v>0.04)bottomNow();
+    trackConVel(v);
+    if(elbow>158){st.phase='top';
+      if(!st.cur.depthHit)coach('Deeper — touch',{cls:'warn',force:true});
+      finishRep();}
+  }
+}
+function analyzeDeadlift(L,v){
   const hipAng=(angle(L[11],L[23],L[25])+angle(L[12],L[24],L[26]))/2;
   const kneeAng=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
   const locked=hipAng>166&&kneeAng>166;
   $('depthV').textContent=Math.round(hipAng)+'°';$('depthL').textContent='Hip °';
-  if(st.phase==='top'&&hipAng<118){st.phase='down';beginRep();}
+  if(st.phase==='top'&&hipAng<118){st.phase='down';beginRep();bottomNow();}
   if(st.phase==='down'&&st.cur){
-    st.cur.minKnee=Math.min(st.cur.minKnee,hipAng); // store min hip angle in same slot
+    st.cur.minKnee=Math.min(st.cur.minKnee,hipAng);
+    trackConVel(v);
     if(locked){st.cur.depthHit=true;st.phase='top';finishRep();}
     else if(hipAng>152&&kneeAng>164)coach('Hips through',{cls:'warn'});
   }
 }
 function finishRep(){
   const c=st.cur;if(!c)return;
-  c.dur=(performance.now()-c.t0)/1000;
+  const tEnd=performance.now();
+  c.dur=(tEnd-c.t0)/1000;
+  c.ecc=c.tBottom?(c.tBottom-c.t0)/1000:c.dur;
+  c.con=c.tBottom?(tEnd-c.tBottom)/1000:0;
+  c.meanV=c.nV?c.sumV/c.nV:0;
   st.reps_data.push(c);
-  const counted = lift==='deadlift' ? c.depthHit : true;
-  if(counted){
-    st.reps++;
-    cue(String(st.reps),{cls:c.depthHit?'good':'warn',force:true}); // rep count always spoken, both modes
-  }
+  const counted=lift==='deadlift'?c.depthHit:true;
+  if(counted){st.reps++;cue(String(st.reps),{cls:c.depthHit?'good':'warn',force:true});}
   if(lift==='squat'&&!c.depthHit)coach('High — hit depth',{cls:'warn',force:true});
   $('repCount').textContent=st.reps;
+  // VBT live alert
+  if(S.vbt==='on'&&st.reps_data.length>1){
+    const first=st.reps_data.find(r=>r.meanV>0);
+    if(first&&c.meanV>0&&c.meanV<first.meanV*0.8)coach('Bar slowing',{cls:'warn'});
+  }
   st.cur=null;
 }
 
 // ---- draw ----
 const BONES=[[11,12],[11,23],[12,24],[23,24],[23,25],[24,26],[25,27],[26,28],[11,13],[13,15],[12,14],[14,16]];
-function draw(L){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(!L)return;
+function draw(L){ctx.clearRect(0,0,canvas.width,canvas.height);if(!L)return;
   ctx.strokeStyle='rgba(212,175,55,.9)';ctx.lineWidth=3;ctx.lineCap='round';
   BONES.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(L[a].x*canvas.width,L[a].y*canvas.height);ctx.lineTo(L[b].x*canvas.width,L[b].y*canvas.height);ctx.stroke();});
   ctx.fillStyle='#ece9e3';
-  KEYPTS.forEach(i=>{ctx.beginPath();ctx.arc(L[i].x*canvas.width,L[i].y*canvas.height,4,0,7);ctx.fill();});
-}
+  KEYPTS[lift].forEach(i=>{ctx.beginPath();ctx.arc(L[i].x*canvas.width,L[i].y*canvas.height,4,0,7);ctx.fill();});}
 
 // ---- loop ----
 let lastVT=-1;
@@ -285,11 +314,13 @@ function loop(){
     if(raw&&visibleEnough(raw)){
       $('framewarn').style.display='none';st.lostFrames=0;
       const L=smoothLm(raw);
+      if(st.calibFrames<30){st.calibFrames++;calibScale(L);}
+      const v=velocity(L);
       draw(L);
-      (lift==='squat'?analyzeSquat:analyzeDeadlift)(L);
+      (lift==='squat'?analyzeSquat:lift==='bench'?analyzeBench:analyzeDeadlift)(L,v);
     }else{
       draw(null);
-      if(++st.lostFrames===25){ $('framewarn').style.display='block'; speak('Move into frame'); }
+      if(++st.lostFrames===25){$('framewarn').style.display='block';speak('Move into frame');}
     }
   }
   requestAnimationFrame(loop);
@@ -304,46 +335,39 @@ async function startCam(){
   $('stage').classList.toggle('rear',facing==='environment');
 }
 
-// ---- set report ----
+// ---- report ----
 function endSet(){
   const dur=((performance.now()-st.startT)/1000).toFixed(0);
-  const reps=st.reps_data;
-  let html='';
-  if(!reps.length){ html='<p>No reps detected. Check side-on framing and lighting.</p>'; }
+  const reps=st.reps_data;let html='';
+  if(!reps.length){html='<p>No reps detected. Check side-on framing and lighting.</p>';}
   else{
-    const isSq=lift==='squat';
-    html=`<table><tr><th>#</th><th>${isSq?'Depth':'Lockout'}</th><th>${isSq?'Min knee°':'Min hip°'}</th>${isSq?'<th>Max lean°</th>':''}<th>Time s</th></tr>`;
-    reps.forEach((r,i)=>{
-      html+=`<tr><td>${i+1}</td><td class="${r.depthHit?'ok':'no'}">${r.depthHit?'✓':'✗'}</td><td>${Math.round(r.minKnee)}</td>${isSq?`<td>${Math.round(r.maxLean)}</td>`:''}<td>${r.dur.toFixed(1)}</td></tr>`;
-    });
+    const isSq=lift==='squat',isBn=lift==='bench';
+    const romLabel=isSq?'Depth':isBn?'ROM':'Lock';
+    html=`<table><tr><th>#</th><th>${romLabel}</th><th>${isSq?'Knee°':isBn?'Elbow°':'Hip°'}</th><th>Ecc s</th><th>Con s</th><th>m/s</th></tr>`;
+    reps.forEach((r,i)=>{html+=`<tr><td>${i+1}</td><td class="${r.depthHit?'ok':'no'}">${r.depthHit?'✓':'✗'}</td><td>${Math.round(r.minKnee)}</td><td>${r.ecc.toFixed(1)}</td><td>${r.con.toFixed(1)}</td><td>${r.meanV>0?r.meanV.toFixed(2):'–'}</td></tr>`;});
     html+='</table>';
-    // verdicts
-    const hits=reps.filter(r=>r.depthHit).length;
-    const v=[];
-    if(isSq){
-      v.push(`<b>${hits}/${reps.length}</b> reps to ${S.depth==='comp'?'comp':'training'} depth.`);
-      const avgLean=reps.reduce((a,r)=>a+r.maxLean,0)/reps.length;
-      if(avgLean>52)v.push(`Average peak lean <b>${Math.round(avgLean)}°</b> — torso folding; brace harder or check ankle mobility.`);
-      const d1=reps[0].dur,dn=reps[reps.length-1].dur;
-      if(reps.length>2&&dn>d1*1.6)v.push(`Last rep <b>${dn.toFixed(1)}s</b> vs first <b>${d1.toFixed(1)}s</b> — big slowdown, you were near the limit.`);
-      const shallowLate=reps.slice(-2).some(r=>!r.depthHit)&&reps[0].depthHit;
-      if(shallowLate)v.push(`Depth faded on the last reps — fatigue cutting your ROM.`);
-    }else{
-      v.push(`<b>${hits}</b> locked-out reps.`);
-      const d1=reps[0].dur,dn=reps[reps.length-1].dur;
-      if(reps.length>2&&dn>d1*1.6)v.push(`Bar speed dropped hard by the end (${d1.toFixed(1)}s → ${dn.toFixed(1)}s).`);
+    const hits=reps.filter(r=>r.depthHit).length,v=[];
+    v.push(`<b>${hits}/${reps.length}</b> reps ${isSq?`to ${S.depth} depth`:isBn?'full ROM':'locked out'}.`);
+    const vels=reps.filter(r=>r.meanV>0);
+    if(vels.length>1){
+      const loss=(1-vels[vels.length-1].meanV/vels[0].meanV)*100;
+      if(loss>0)v.push(`Bar speed dropped <b>${loss.toFixed(0)}%</b> across the set${loss>20?' — past the classic 20% VBT cutoff, that was near failure':loss>10?' — solid effort, fatigue showing':' — plenty in the tank'}.`);
+      else v.push(`Bar speed held or improved — weight was submaximal.`);
     }
+    if(isSq){
+      const avgLean=reps.reduce((a,r)=>a+r.maxLean,0)/reps.length;
+      if(avgLean>52)v.push(`Avg peak lean <b>${Math.round(avgLean)}°</b> — torso folding; brace harder.`);
+      if(reps.slice(-2).some(r=>!r.depthHit)&&reps[0].depthHit)v.push(`Depth faded late — fatigue cutting ROM.`);
+    }
+    const avgEcc=reps.reduce((a,r)=>a+r.ecc,0)/reps.length;
+    if(avgEcc<0.8)v.push(`Eccentric averaging <b>${avgEcc.toFixed(1)}s</b> — you're diving; control the descent.`);
     html+=`<div class="verdict">${v.join('<br>')}</div>`;
     if(S.mode==='quiet'){
-      const spokenBits=isSq
-        ? [`${st.reps} reps.`,`${hits} of ${reps.length} to depth.`,
-           ...(reps.some(r=>!r.depthHit)?['Watch your depth.']:[]),
-           ...(reps.reduce((a,r)=>a+r.maxLean,0)/reps.length>52?['Torso was folding. Brace harder.']:[])]
-        : [`${st.reps} reps, all locked out.`];
-      speak('Set done. '+spokenBits.join(' '),1.05);
-    } else {
-      speak(`Set done. ${st.reps} reps.`);
-    }
+      const bits=[`${st.reps} reps.`,`${hits} of ${reps.length} ${isSq?'to depth':isBn?'full range':'locked out'}.`];
+      if(vels.length>1){const loss=(1-vels[vels.length-1].meanV/vels[0].meanV)*100;
+        if(loss>20)bits.push(`Bar speed fell ${loss.toFixed(0)} percent. That was close to your limit.`);}
+      speak('Set done. '+bits.join(' '),1.05);
+    }else speak(`Set done. ${st.reps} reps.`);
   }
   $('summaryBody').innerHTML=`<p style="font-family:'JetBrains Mono';font-size:12px">${lift.toUpperCase()} · ${dur}s</p>`+html;
   $('setSummary').style.display='block';
@@ -356,17 +380,12 @@ $('startBtn').onclick=async()=>{
   if(!running){
     try{
       $('status').textContent='Requesting camera…';
-      await startCam();
-      resetSet();running=true;lastVT=-1;
+      await startCam();resetSet();running=true;lastVT=-1;
       $('startBtn').textContent='End set';$('startBtn').classList.add('live');
       $('setSummary').style.display='none';
-      $('status').textContent=S.mode==='live'?'Tracking · live cues on.':'Tracking · quiet mode, report after set.';
-      speak('Set started');
-      loop();
-    }catch(err){
-      $('status').textContent='Camera blocked: '+err.message;
-      $('status').className='statusline err';
-    }
+      $('status').textContent=(S.mode==='live'?'Tracking · live cues.':'Tracking · quiet, report after.')+(lift!=='bench'?' Stand tall first 2s to calibrate speed.':'');
+      speak('Set started');loop();
+    }catch(err){$('status').textContent='Camera blocked: '+err.message;$('status').className='statusline err';}
   }else{
     running=false;endSet();
     $('startBtn').textContent='Start set';$('startBtn').classList.remove('live');
@@ -375,7 +394,7 @@ $('startBtn').onclick=async()=>{
   }
 };
 
-// ---- init model ----
+// ---- init ----
 (async()=>{
   try{
     const files=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
@@ -383,10 +402,7 @@ $('startBtn').onclick=async()=>{
       baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",delegate:"GPU"},
       runningMode:"VIDEO",numPoses:1});
     $('status').textContent='Model ready. Press Start set.';
-  }catch(e){
-    $('status').textContent='Model failed to load — check connection. '+e.message;
-    $('status').className='statusline err';
-  }
+  }catch(e){$('status').textContent='Model failed to load — check connection. '+e.message;$('status').className='statusline err';}
 })();
 </script>
 </body>
