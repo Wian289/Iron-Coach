@@ -26,6 +26,11 @@
   .pill{background:rgba(22,23,26,.78);backdrop-filter:blur(4px);border:1px solid var(--line);border-radius:10px;padding:7px 11px;}
   .pill .v{font-family:'JetBrains Mono';font-weight:700;font-size:20px;line-height:1;color:var(--accent);}
   .pill .l{font-family:'Oswald';font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  #dbg{position:absolute;top:64px;left:10px;background:rgba(0,0,0,.6);border:1px solid var(--line);border-radius:8px;
+    padding:7px 9px;font-family:'JetBrains Mono';font-size:11px;line-height:1.5;color:#7ed99a;white-space:pre;display:none;pointer-events:none;}
+  .calibbar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(22,23,26,.85);
+    border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:8px 16px;font-family:'Oswald';
+    font-size:14px;letter-spacing:.06em;text-transform:uppercase;display:none;pointer-events:none;}
   .framewarn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(22,23,26,.85);
     border:1px solid var(--warn);color:#f2a468;border-radius:10px;padding:8px 16px;font-family:'Oswald';
     font-size:14px;letter-spacing:.06em;text-transform:uppercase;display:none;pointer-events:none;}
@@ -47,9 +52,10 @@
   .ghost{background:var(--panel2);color:var(--ink);}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;margin-top:14px;}
-  .card h2{font-family:'Oswald';text-transform:uppercase;font-size:14px;letter-spacing:.06em;margin:0 0 10px;color:var(--accent);display:flex;justify-content:space-between;align-items:center;}
+  .card h2{font-family:'Oswald';text-transform:uppercase;font-size:14px;letter-spacing:.06em;margin:0 0 10px;color:var(--accent);display:flex;justify-content:space-between;align-items:center;gap:8px;}
   .card p,.card li{font-size:13.5px;color:var(--muted);margin:6px 0;}
   .card b{color:var(--ink);}
+  .mini{font-family:'Oswald';font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:7px 11px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;}
 
   .setting{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);}
   .setting:last-child{border-bottom:none;}
@@ -65,6 +71,8 @@
   th{font-family:'Oswald';text-transform:uppercase;letter-spacing:.04em;font-size:9.5px;color:var(--muted);font-weight:600;}
   td.ok{color:#7ed99a;} td.no{color:#f2a468;}
   .verdict{font-size:13.5px;margin-top:10px;}
+  .rejected{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);}
+  .rejected .rj{font-family:'JetBrains Mono';font-size:11px;color:#f2a468;margin:3px 0;}
   .statusline{font-size:12px;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono';}
   .statusline.err{color:var(--bad);}
 </style>
@@ -73,7 +81,7 @@
 <div class="wrap">
   <header>
     <div>
-      <div class="eyebrow">On-device AI · No video leaves your phone</div>
+      <div class="eyebrow">On-device AI · v0.4</div>
       <h1>Iron Coach</h1>
     </div>
   </header>
@@ -86,6 +94,8 @@
       <div class="pill"><div class="v" id="speedV">–</div><div class="l">Bar m/s</div></div>
       <div class="pill"><div class="v" id="depthV">–</div><div class="l" id="depthL">Depth</div></div>
     </div>
+    <div id="dbg"></div>
+    <div class="calibbar" id="calibbar">Stand tall — calibrating…</div>
     <div class="framewarn" id="framewarn">Move fully into frame</div>
     <div class="cue" id="cue"></div>
   </div>
@@ -105,9 +115,7 @@
     <h2>Settings</h2>
     <div class="setting">
       <div class="nm">Feedback mode<small>Live = cues during the set. Quiet = counts only, report after.</small></div>
-      <div class="seg" id="segMode">
-        <button data-v="live">Live</button><button data-v="quiet">Quiet</button>
-      </div>
+      <div class="seg" id="segMode"><button data-v="live">Live</button><button data-v="quiet">Quiet</button></div>
     </div>
     <div class="setting">
       <div class="nm">Voice<small>Spoken cues through headphones</small></div>
@@ -126,20 +134,23 @@
       <div class="seg" id="segVBT"><button data-v="on">On</button><button data-v="off">Off</button></div>
     </div>
     <div class="setting">
+      <div class="nm">Debug mode<small>Live angles + state on screen; rejected reps shown; log export</small></div>
+      <div class="seg" id="segDebug"><button data-v="on">On</button><button data-v="off">Off</button></div>
+    </div>
+    <div class="setting">
       <div class="nm">Your height<small>Calibrates bar speed to real m/s</small></div>
       <div><input type="number" id="heightCm" inputmode="numeric"> <span style="color:var(--muted);font-size:12px">cm</span></div>
     </div>
   </div>
 
   <div class="card" id="setSummary" style="display:none">
-    <h2>Set report</h2>
+    <h2>Set report <button class="mini" id="dlLog" style="display:none">Export debug log</button></h2>
     <div id="summaryBody"></div>
   </div>
 
   <div class="card">
     <h2>Setup</h2>
-    <p><b>Side-on</b>, full body in frame, 2–4 m away, good light. <b>Bench:</b> camera side-on at bench height; it tracks your visible arm — elbow ROM, lockout, press speed.</p>
-    <p><b>Bar speed</b> is estimated from wrist/hip movement scaled by your height — treat it as consistent-relative, not lab-grade. Tempo = eccentric / concentric seconds per rep.</p>
+    <p><b>Side-on</b>, full body in frame, 2–4 m away, good light. At the start of each set, <b>hold your top/standing position for ~1.5 s</b> — the app calibrates to your body before counting.</p>
     <p>Training aid, not a spotter.</p>
   </div>
 </div>
@@ -151,20 +162,21 @@ const $=id=>document.getElementById(id);
 const video=$('cam'), canvas=$('overlay'), ctx=canvas.getContext('2d');
 let landmarker=null, running=false, stream=null, facing='user', lift='squat';
 
-// ---- settings ----
-const S=Object.assign({mode:'live',voice:'on',depth:'comp',chat:'med',vbt:'on',height:178},
+// ===== settings =====
+const S=Object.assign({mode:'live',voice:'on',depth:'comp',chat:'med',vbt:'on',debug:'off',height:178},
   JSON.parse(localStorage.getItem('ic-settings')||'{}'));
 const saveS=()=>localStorage.setItem('ic-settings',JSON.stringify(S));
 function bindSeg(id,key){const el=$(id);el.querySelectorAll('button').forEach(b=>{
   b.setAttribute('aria-pressed',b.dataset.v===S[key]?'true':'false');
   b.onclick=()=>{S[key]=b.dataset.v;saveS();
-    el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===S[key]?'true':'false'));};});}
-bindSeg('segMode','mode');bindSeg('segVoice','voice');bindSeg('segDepth','depth');bindSeg('segChat','chat');bindSeg('segVBT','vbt');
+    el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===S[key]?'true':'false'));
+    if(key==='debug')$('dbg').style.display=(S.debug==='on'&&running)?'block':'none';};});}
+['Mode','Voice','Depth','Chat','VBT','Debug'].forEach(k=>bindSeg('seg'+k,k.toLowerCase()));
 $('heightCm').value=S.height;
 $('heightCm').onchange=e=>{S.height=Math.max(120,Math.min(220,+e.target.value||178));e.target.value=S.height;saveS();};
 const chatGap=()=>({low:4500,med:2400,high:1300})[S.chat];
 
-// ---- speech & cues ----
+// ===== speech / cues =====
 let lastSpeak=0,lastCueText='';
 function speak(t,rate=1.15){if(S.voice!=='on'||!('speechSynthesis'in window))return;
   speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=rate;speechSynthesis.speak(u);}
@@ -177,117 +189,143 @@ function cue(text,{cls='',force=false}={}){
   speak(text);}
 const coach=(t,o={})=>{if(S.mode==='live')cue(t,o);};
 
-// ---- geometry, smoothing ----
+// ===== geometry =====
 const angle=(a,b,c)=>{const v1={x:a.x-b.x,y:a.y-b.y},v2={x:c.x-b.x,y:c.y-b.y};
   const d=v1.x*v2.x+v1.y*v2.y,m=Math.hypot(v1.x,v1.y)*Math.hypot(v2.x,v2.y);
   return Math.acos(Math.min(1,Math.max(-1,d/m)))*180/Math.PI;};
 const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
-let smooth=null;const ALPHA=0.45;
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+
+// ===== smoothing + teleport rejection =====
+let smooth=null, prevRaw=null;
+const ALPHA=0.45, TELEPORT=0.22;
+const KEYPTS={squat:[11,12,23,24,25,26,27,28],deadlift:[11,12,23,24,25,26,27,28],bench:[11,12,13,14,15,16]};
+function isTeleport(raw){
+  if(!prevRaw)return false;
+  let maxMove=0;
+  KEYPTS[lift].forEach(i=>{const d=Math.hypot(raw[i].x-prevRaw[i].x,raw[i].y-prevRaw[i].y);if(d>maxMove)maxMove=d;});
+  return maxMove>TELEPORT;
+}
 function smoothLm(L){if(!smooth){smooth=L.map(p=>({...p}));return smooth;}
   for(let i=0;i<L.length;i++){smooth[i].x+=(L[i].x-smooth[i].x)*ALPHA;smooth[i].y+=(L[i].y-smooth[i].y)*ALPHA;smooth[i].visibility=L[i].visibility;}
   return smooth;}
-const KEYPTS={squat:[11,12,23,24,25,26,27,28],deadlift:[11,12,23,24,25,26,27,28],bench:[11,12,13,14,15,16]};
 function visibleEnough(L){const k=KEYPTS[lift];let v=0;k.forEach(i=>v+=L[i].visibility??1);return v/k.length>0.5;}
-// pick more-visible arm for bench
 function benchSide(L){const lv=(L[11].visibility+L[13].visibility+L[15].visibility)/3;
   const rv=(L[12].visibility+L[14].visibility+L[16].visibility)/3;
   return lv>=rv?{sh:11,el:13,wr:15}:{sh:12,el:14,wr:16};}
 
-// ---- velocity engine ----
-// scale: metres per normalized-unit, captured at set start
-let scaleM=null, lastY=null, lastT=null, velSm=0;
-function calibScale(L){
-  if(lift==='bench'){ // shoulder→hip ≈ 0.30 × height
-    const d=Math.hypot(mid(L[11],L[12]).x-mid(L[23],L[24]).x, mid(L[11],L[12]).y-mid(L[23],L[24]).y);
-    if(d>0.05) scaleM=(S.height/100*0.30)/d;
-  }else{ // standing: nose(0)→ankle ≈ 0.94 × height
-    const d=Math.abs(L[0].y-mid(L[27],L[28]).y);
-    if(d>0.3) scaleM=(S.height/100*0.94)/d;
+// ===== per-lift config =====
+const CFG={
+  squat:   {downDelta:22,upDelta:14,romMin:38,minPlausible:30,topDefault:172,topClamp:[150,182]},
+  deadlift:{downDelta:30,upDelta:8, romMin:42,minPlausible:25,topDefault:170,topClamp:[150,182]},
+  bench:   {downDelta:20,upDelta:14,romMin:42,minPlausible:25,topDefault:168,topClamp:[140,180],touchDelta:70},
+};
+const PLAUS={minRep:0.9,maxRep:12,minEcc:0.25,maxCon:6};
+const STABLE=3, MIN_DOWN_MS=350;
+
+// ===== metrics per frame =====
+function metrics(L){
+  if(lift==='squat'){
+    const hip=mid(L[23],L[24]),knee=mid(L[25],L[26]),sh=mid(L[11],L[12]);
+    const prim=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
+    const lean=Math.abs(Math.atan2(sh.x-hip.x,hip.y-sh.y))*180/Math.PI;
+    const depthThr=S.depth==='comp'?-0.012:0.004;
+    return {prim,lean,romGood:(knee.y-hip.y)<depthThr};
   }
+  if(lift==='deadlift'){
+    const prim=(angle(L[11],L[23],L[25])+angle(L[12],L[24],L[26]))/2;
+    const kneeAng=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
+    return {prim,kneeAng,romGood:prim>(base.top-8)&&kneeAng>160};
+  }
+  const s=benchSide(L);
+  const prim=angle(L[s.sh],L[s.el],L[s.wr]);
+  return {prim,romGood:prim<(base.top-CFG.bench.touchDelta)};
 }
-function trackPoint(L){
-  if(lift==='squat')return mid(L[23],L[24]).y;
-  if(lift==='deadlift'){const a=L[15],b=L[16];return ((a.visibility>b.visibility)?a:b).y;}
-  const s=benchSide(L);return L[s.wr].y;
+
+// ===== velocity =====
+let scaleM=null,lastY=null,lastT=null,velSm=0;
+function calibScale(L){
+  if(lift==='bench'){const d=Math.hypot(mid(L[11],L[12]).x-mid(L[23],L[24]).x,mid(L[11],L[12]).y-mid(L[23],L[24]).y);
+    if(d>0.05)scaleM=(S.height/100*0.30)/d;}
+  else{const d=Math.abs(L[0].y-mid(L[27],L[28]).y);if(d>0.3)scaleM=(S.height/100*0.94)/d;}
 }
-function velocity(L){ // +ve = moving UP, in m/s (if calibrated)
-  const y=trackPoint(L),t=performance.now();
+function trackPoint(L){if(lift==='squat')return mid(L[23],L[24]).y;
+  if(lift==='deadlift'){const a=L[15],b=L[16];return((a.visibility>b.visibility)?a:b).y;}
+  const s=benchSide(L);return L[s.wr].y;}
+function velocity(L){const y=trackPoint(L),t=performance.now();
   if(lastY===null){lastY=y;lastT=t;return 0;}
   const dt=(t-lastT)/1000;if(dt<=0)return velSm;
-  let v=-(y-lastY)/dt*(scaleM||1.7); // fallback rough scale
-  lastY=y;lastT=t;
-  velSm+= (v-velSm)*0.3;
-  return velSm;
+  let v=-(y-lastY)/dt*(scaleM||1.7);lastY=y;lastT=t;velSm+=(v-velSm)*0.3;return velSm;}
+
+// ===== calibration =====
+let base={top:172,ready:false,t0:0,maxPrim:0};
+function startCalib(){base={top:CFG[lift].topDefault,ready:false,t0:performance.now(),maxPrim:0};
+  $('calibbar').style.display='block';}
+function calibStep(prim,L){
+  base.maxPrim=Math.max(base.maxPrim,prim);
+  calibScale(L);
+  const elapsed=performance.now()-base.t0;
+  if(elapsed>1500 || prim < base.maxPrim-CFG[lift].downDelta){
+    base.top=clamp(base.maxPrim,CFG[lift].topClamp[0],CFG[lift].topClamp[1]);
+    base.ready=true;$('calibbar').style.display='none';
+    speak('Calibrated. Go.');
+  }
 }
 
-// ---- per-rep state ----
+// ===== state machine =====
 let st={};
-function resetSet(){smooth=null;lastY=null;velSm=0;scaleM=null;
-  st={phase:'top',reps:0,startT:performance.now(),reps_data:[],cur:null,lostFrames:0,calibFrames:0};
+function resetSet(){smooth=null;prevRaw=null;lastY=null;velSm=0;scaleM=null;
+  st={phase:'top',reps:0,setT:performance.now(),reps_data:[],rejected:[],cur:null,lost:0,candD:0,candU:0,phaseT:0,frames:[]};
   $('repCount').textContent='0';$('speedV').textContent='–';}
-function beginRep(){st.cur={minKnee:999,maxLean:0,depthHit:false,t0:performance.now(),tBottom:null,peakV:0,sumV:0,nV:0};}
-function bottomNow(){if(st.cur&&!st.cur.tBottom)st.cur.tBottom=performance.now();}
-function trackConVel(v){if(st.cur&&st.cur.tBottom&&v>0){st.cur.peakV=Math.max(st.cur.peakV,v);st.cur.sumV+=v;st.cur.nV++;
-  $('speedV').textContent=v.toFixed(2);}}
-const depthThr=()=>S.depth==='comp'?-0.012:0.004;
+function beginRep(){st.cur={minPrim:999,maxLean:0,romGoodSeen:false,t0:performance.now(),tBottom:null,peakV:0,sumV:0,nV:0};st.phaseT=performance.now();}
 
-function analyzeSquat(L,v){
-  const hip=mid(L[23],L[24]),knee=mid(L[25],L[26]),sh=mid(L[11],L[12]);
-  const kneeAng=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
-  const lean=Math.abs(Math.atan2(sh.x-hip.x,hip.y-sh.y))*180/Math.PI;
-  const below=(knee.y-hip.y)<depthThr();
-  $('depthV').textContent=below?'✓':Math.round(kneeAng)+'°';$('depthL').textContent=below?'Depth':'Knee °';
-  if(st.phase==='top'&&kneeAng<148){st.phase='down';beginRep();}
-  if(st.phase==='down'&&st.cur){
-    st.cur.minKnee=Math.min(st.cur.minKnee,kneeAng);st.cur.maxLean=Math.max(st.cur.maxLean,lean);
-    if(below&&!st.cur.depthHit){st.cur.depthHit=true;bottomNow();coach('Depth!',{cls:'good'});}
-    if(!st.cur.tBottom&&v>0.05)bottomNow(); // started moving up without depth
-    trackConVel(v);
-    if(lean>58&&kneeAng<150)coach('Chest up',{cls:'warn'});
-    if(kneeAng>162){st.phase='top';finishRep();}
+function step(L,v,m){
+  const prim=m.prim;
+  if(st.phase==='top'){
+    if(prim<base.top-CFG[lift].downDelta)st.candD++;else st.candD=0;
+    if(st.candD>=STABLE){st.phase='down';st.candD=0;beginRep();}
+  } else {
+    const c=st.cur;
+    if(prim<c.minPrim){c.minPrim=prim;c.tBottom=performance.now();}
+    c.maxLean=Math.max(c.maxLean,m.lean||0);
+    if(m.romGood)c.romGoodSeen=true;
+    if(c.tBottom&&v>0){c.peakV=Math.max(c.peakV,v);c.sumV+=v;c.nV++;$('speedV').textContent=v.toFixed(2);}
+    if(lift==='squat'){ if(m.romGood)coach('Depth!',{cls:'good'}); if(m.lean>58&&prim<150)coach('Chest up',{cls:'warn'}); }
+    if(lift==='deadlift'&&prim>base.top-18&&(m.kneeAng||0)>164&&!m.romGood)coach('Hips through',{cls:'warn'});
+    if(prim>base.top-CFG[lift].upDelta)st.candU++;else st.candU=0;
+    if(st.candU>=STABLE && performance.now()-st.phaseT>MIN_DOWN_MS){st.phase='top';st.candU=0;finishRep();}
   }
 }
-function analyzeBench(L,v){
-  const s=benchSide(L);
-  const elbow=angle(L[s.sh],L[s.el],L[s.wr]);
-  $('depthV').textContent=Math.round(elbow)+'°';$('depthL').textContent='Elbow °';
-  if(st.phase==='top'&&elbow<145){st.phase='down';beginRep();}
-  if(st.phase==='down'&&st.cur){
-    st.cur.minKnee=Math.min(st.cur.minKnee,elbow); // minKnee slot = min elbow
-    if(elbow<95)st.cur.depthHit=true; // full ROM proxy
-    if(!st.cur.tBottom&&v>0.04)bottomNow();
-    trackConVel(v);
-    if(elbow>158){st.phase='top';
-      if(!st.cur.depthHit)coach('Deeper — touch',{cls:'warn',force:true});
-      finishRep();}
-  }
-}
-function analyzeDeadlift(L,v){
-  const hipAng=(angle(L[11],L[23],L[25])+angle(L[12],L[24],L[26]))/2;
-  const kneeAng=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
-  const locked=hipAng>166&&kneeAng>166;
-  $('depthV').textContent=Math.round(hipAng)+'°';$('depthL').textContent='Hip °';
-  if(st.phase==='top'&&hipAng<118){st.phase='down';beginRep();bottomNow();}
-  if(st.phase==='down'&&st.cur){
-    st.cur.minKnee=Math.min(st.cur.minKnee,hipAng);
-    trackConVel(v);
-    if(locked){st.cur.depthHit=true;st.phase='top';finishRep();}
-    else if(hipAng>152&&kneeAng>164)coach('Hips through',{cls:'warn'});
-  }
-}
+
 function finishRep(){
-  const c=st.cur;if(!c)return;
+  const c=st.cur;if(!c){return;}
   const tEnd=performance.now();
   c.dur=(tEnd-c.t0)/1000;
   c.ecc=c.tBottom?(c.tBottom-c.t0)/1000:c.dur;
   c.con=c.tBottom?(tEnd-c.tBottom)/1000:0;
   c.meanV=c.nV?c.sumV/c.nV:0;
-  st.reps_data.push(c);
-  const counted=lift==='deadlift'?c.depthHit:true;
-  if(counted){st.reps++;cue(String(st.reps),{cls:c.depthHit?'good':'warn',force:true});}
+  c.romRange=base.top-c.minPrim;
+
+  const reasons=[];
+  if(c.romRange<CFG[lift].romMin)reasons.push(`ROM ${Math.round(c.romRange)}°<${CFG[lift].romMin}`);
+  if(c.dur<PLAUS.minRep)reasons.push(`${c.dur.toFixed(1)}s too fast`);
+  if(c.dur>PLAUS.maxRep)reasons.push(`${c.dur.toFixed(1)}s too slow`);
+  if(c.ecc<PLAUS.minEcc)reasons.push(`ecc ${c.ecc.toFixed(1)}s`);
+  if(c.con>PLAUS.maxCon)reasons.push(`con ${c.con.toFixed(1)}s`);
+  if(c.minPrim<CFG[lift].minPlausible)reasons.push(`angle ${Math.round(c.minPrim)}° impossible`);
+
+  if(reasons.length){
+    st.rejected.push({reason:reasons.join(', '),dur:c.dur,ecc:c.ecc,con:c.con,minPrim:Math.round(c.minPrim)});
+    if(S.debug==='on')coach('Rep rejected',{cls:'warn'});
+    st.cur=null;return;
+  }
+
+  c.depthHit=c.romGoodSeen;
+  st.reps_data.push(c);st.reps++;
+  cue(String(st.reps),{cls:c.depthHit?'good':'warn',force:true});
   if(lift==='squat'&&!c.depthHit)coach('High — hit depth',{cls:'warn',force:true});
+  if(lift==='bench'&&!c.depthHit)coach('Deeper — touch',{cls:'warn'});
   $('repCount').textContent=st.reps;
-  // VBT live alert
   if(S.vbt==='on'&&st.reps_data.length>1){
     const first=st.reps_data.find(r=>r.meanV>0);
     if(first&&c.meanV>0&&c.meanV<first.meanV*0.8)coach('Bar slowing',{cls:'warn'});
@@ -295,15 +333,14 @@ function finishRep(){
   st.cur=null;
 }
 
-// ---- draw ----
+// ===== draw =====
 const BONES=[[11,12],[11,23],[12,24],[23,24],[23,25],[24,26],[25,27],[26,28],[11,13],[13,15],[12,14],[14,16]];
-function draw(L){ctx.clearRect(0,0,canvas.width,canvas.height);if(!L)return;
-  ctx.strokeStyle='rgba(212,175,55,.9)';ctx.lineWidth=3;ctx.lineCap='round';
+function draw(L,stable){ctx.clearRect(0,0,canvas.width,canvas.height);if(!L)return;
+  ctx.strokeStyle=stable?'rgba(212,175,55,.9)':'rgba(192,57,43,.85)';ctx.lineWidth=3;ctx.lineCap='round';
   BONES.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(L[a].x*canvas.width,L[a].y*canvas.height);ctx.lineTo(L[b].x*canvas.width,L[b].y*canvas.height);ctx.stroke();});
-  ctx.fillStyle='#ece9e3';
-  KEYPTS[lift].forEach(i=>{ctx.beginPath();ctx.arc(L[i].x*canvas.width,L[i].y*canvas.height,4,0,7);ctx.fill();});}
+  ctx.fillStyle='#ece9e3';KEYPTS[lift].forEach(i=>{ctx.beginPath();ctx.arc(L[i].x*canvas.width,L[i].y*canvas.height,4,0,7);ctx.fill();});}
 
-// ---- loop ----
+// ===== loop =====
 let lastVT=-1;
 function loop(){
   if(!running)return;
@@ -311,90 +348,106 @@ function loop(){
     lastVT=video.currentTime;
     const res=landmarker.detectForVideo(video,performance.now());
     const raw=res.landmarks&&res.landmarks[0];
+    let logentry=null;
     if(raw&&visibleEnough(raw)){
-      $('framewarn').style.display='none';st.lostFrames=0;
+      $('framewarn').style.display='none';st.lost=0;
+      const teleport=isTeleport(raw);
+      prevRaw=raw.map(p=>({x:p.x,y:p.y,visibility:p.visibility}));
       const L=smoothLm(raw);
-      if(st.calibFrames<30){st.calibFrames++;calibScale(L);}
-      const v=velocity(L);
-      draw(L);
-      (lift==='squat'?analyzeSquat:lift==='bench'?analyzeBench:analyzeDeadlift)(L,v);
-    }else{
-      draw(null);
-      if(++st.lostFrames===25){$('framewarn').style.display='block';speak('Move into frame');}
-    }
+      const m=metrics(L);
+      draw(L,!teleport);
+      if(!base.ready){ $('depthV').textContent='cal';calibStep(m.prim,L); }
+      else if(!teleport){ const v=velocity(L); step(L,v,m);
+        $('depthV').textContent=m.romGood?'✓':Math.round(m.prim)+'°';
+        $('depthL').textContent=lift==='bench'?'Elbow':lift==='deadlift'?'Hip':(m.romGood?'Depth':'Knee');
+        logentry={t:+(performance.now()-st.setT).toFixed(0),ph:st.phase,prim:+m.prim.toFixed(1),v:+v.toFixed(2),cD:st.candD,cU:st.candU};
+      } else { logentry={t:+(performance.now()-st.setT).toFixed(0),ph:st.phase,prim:+m.prim.toFixed(1),teleport:1}; }
+      if(S.debug==='on'){
+        $('dbg').textContent=`phase ${base.ready?st.phase:'CALIB'}\nprim  ${m.prim.toFixed(0)}°  top ${Math.round(base.top)}\nv     ${(velSm).toFixed(2)} m/s\ncand  D${st.candD} U${st.candU}${teleport?'\n⚠ teleport':''}`;
+        if(st.frames.length<6000&&logentry)st.frames.push(logentry);
+      }
+    } else { draw(null,true); if(++st.lost===25){$('framewarn').style.display='block';speak('Move into frame');} }
   }
   requestAnimationFrame(loop);
 }
 
-// ---- camera ----
-async function startCam(){
-  if(stream)stream.getTracks().forEach(t=>t.stop());
+// ===== camera =====
+async function startCam(){if(stream)stream.getTracks().forEach(t=>t.stop());
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:720}},audio:false});
-  video.srcObject=stream;await video.play();
-  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-  $('stage').classList.toggle('rear',facing==='environment');
-}
+  video.srcObject=stream;await video.play();canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  $('stage').classList.toggle('rear',facing==='environment');}
 
-// ---- report ----
+// ===== report =====
 function endSet(){
-  const dur=((performance.now()-st.startT)/1000).toFixed(0);
+  const dur=((performance.now()-st.setT)/1000).toFixed(0);
   const reps=st.reps_data;let html='';
-  if(!reps.length){html='<p>No reps detected. Check side-on framing and lighting.</p>';}
+  if(!reps.length){html='<p>No valid reps detected.'+(st.rejected.length?` ${st.rejected.length} movement(s) filtered out.`:'')+' Check side-on framing, lighting, and that you held still to calibrate.</p>';}
   else{
     const isSq=lift==='squat',isBn=lift==='bench';
     const romLabel=isSq?'Depth':isBn?'ROM':'Lock';
     html=`<table><tr><th>#</th><th>${romLabel}</th><th>${isSq?'Knee°':isBn?'Elbow°':'Hip°'}</th><th>Ecc s</th><th>Con s</th><th>m/s</th></tr>`;
-    reps.forEach((r,i)=>{html+=`<tr><td>${i+1}</td><td class="${r.depthHit?'ok':'no'}">${r.depthHit?'✓':'✗'}</td><td>${Math.round(r.minKnee)}</td><td>${r.ecc.toFixed(1)}</td><td>${r.con.toFixed(1)}</td><td>${r.meanV>0?r.meanV.toFixed(2):'–'}</td></tr>`;});
+    reps.forEach((r,i)=>{html+=`<tr><td>${i+1}</td><td class="${r.depthHit?'ok':'no'}">${r.depthHit?'✓':'✗'}</td><td>${Math.round(r.minPrim)}</td><td>${r.ecc.toFixed(1)}</td><td>${r.con.toFixed(1)}</td><td>${r.meanV>0?r.meanV.toFixed(2):'–'}</td></tr>`;});
     html+='</table>';
     const hits=reps.filter(r=>r.depthHit).length,v=[];
     v.push(`<b>${hits}/${reps.length}</b> reps ${isSq?`to ${S.depth} depth`:isBn?'full ROM':'locked out'}.`);
     const vels=reps.filter(r=>r.meanV>0);
-    if(vels.length>1){
-      const loss=(1-vels[vels.length-1].meanV/vels[0].meanV)*100;
-      if(loss>0)v.push(`Bar speed dropped <b>${loss.toFixed(0)}%</b> across the set${loss>20?' — past the classic 20% VBT cutoff, that was near failure':loss>10?' — solid effort, fatigue showing':' — plenty in the tank'}.`);
-      else v.push(`Bar speed held or improved — weight was submaximal.`);
-    }
-    if(isSq){
-      const avgLean=reps.reduce((a,r)=>a+r.maxLean,0)/reps.length;
-      if(avgLean>52)v.push(`Avg peak lean <b>${Math.round(avgLean)}°</b> — torso folding; brace harder.`);
-      if(reps.slice(-2).some(r=>!r.depthHit)&&reps[0].depthHit)v.push(`Depth faded late — fatigue cutting ROM.`);
-    }
-    const avgEcc=reps.reduce((a,r)=>a+r.ecc,0)/reps.length;
-    if(avgEcc<0.8)v.push(`Eccentric averaging <b>${avgEcc.toFixed(1)}s</b> — you're diving; control the descent.`);
+    if(vels.length>1){const loss=(1-vels[vels.length-1].meanV/vels[0].meanV)*100;
+      if(loss>0)v.push(`Bar speed dropped <b>${loss.toFixed(0)}%</b>${loss>20?' — past the 20% VBT cutoff, near failure':loss>10?' — fatigue showing':' — plenty in the tank'}.`);
+      else v.push(`Bar speed held or improved — submaximal load.`);}
+    if(isSq){const al=reps.reduce((a,r)=>a+r.maxLean,0)/reps.length;
+      if(al>52)v.push(`Avg peak lean <b>${Math.round(al)}°</b> — brace harder.`);
+      if(reps.slice(-2).some(r=>!r.depthHit)&&reps[0].depthHit)v.push(`Depth faded late — fatigue cutting ROM.`);}
+    const ae=reps.reduce((a,r)=>a+r.ecc,0)/reps.length;
+    if(ae<0.8)v.push(`Eccentric averaging <b>${ae.toFixed(1)}s</b> — control the descent.`);
     html+=`<div class="verdict">${v.join('<br>')}</div>`;
-    if(S.mode==='quiet'){
-      const bits=[`${st.reps} reps.`,`${hits} of ${reps.length} ${isSq?'to depth':isBn?'full range':'locked out'}.`];
-      if(vels.length>1){const loss=(1-vels[vels.length-1].meanV/vels[0].meanV)*100;
-        if(loss>20)bits.push(`Bar speed fell ${loss.toFixed(0)} percent. That was close to your limit.`);}
-      speak('Set done. '+bits.join(' '),1.05);
-    }else speak(`Set done. ${st.reps} reps.`);
+    if(S.mode==='quiet'){const bits=[`${st.reps} reps.`,`${hits} of ${reps.length} ${isSq?'to depth':isBn?'full range':'locked out'}.`];
+      if(vels.length>1){const loss=(1-vels[vels.length-1].meanV/vels[0].meanV)*100;if(loss>20)bits.push(`Bar speed fell ${loss.toFixed(0)} percent. Close to your limit.`);}
+      speak('Set done. '+bits.join(' '),1.05);}
+    else speak(`Set done. ${st.reps} reps.`);
   }
-  $('summaryBody').innerHTML=`<p style="font-family:'JetBrains Mono';font-size:12px">${lift.toUpperCase()} · ${dur}s</p>`+html;
+  if(S.debug==='on'&&st.rejected.length){
+    html+=`<div class="rejected"><b style="color:#f2a468;font-family:Oswald;font-size:12px;letter-spacing:.05em">FILTERED OUT (${st.rejected.length})</b>`;
+    st.rejected.forEach(r=>{html+=`<div class="rj">✗ ${r.reason}</div>`;});
+    html+=`</div>`;
+  }
+  $('summaryBody').innerHTML=`<p style="font-family:'JetBrains Mono';font-size:12px">${lift.toUpperCase()} · ${dur}s · base top ${Math.round(base.top)}°</p>`+html;
   $('setSummary').style.display='block';
+  $('dlLog').style.display=(S.debug==='on')?'inline-block':'none';
 }
 
-// ---- ui ----
+// ===== debug export =====
+$('dlLog').onclick=()=>{
+  const payload={version:'0.4',lift,base:{top:Math.round(base.top)},settings:S,
+    reps:st.reps_data,rejected:st.rejected,frames:st.frames};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`ironcoach-${lift}-${Date.now()}.json`;a.click();
+};
+
+// ===== ui =====
 $('lift').onchange=e=>{lift=e.target.value;resetSet();};
 $('flipBtn').onclick=async()=>{facing=facing==='user'?'environment':'user';if(stream)await startCam();};
 $('startBtn').onclick=async()=>{
   if(!running){
     try{
       $('status').textContent='Requesting camera…';
-      await startCam();resetSet();running=true;lastVT=-1;
+      await startCam();resetSet();startCalib();running=true;lastVT=-1;
       $('startBtn').textContent='End set';$('startBtn').classList.add('live');
       $('setSummary').style.display='none';
-      $('status').textContent=(S.mode==='live'?'Tracking · live cues.':'Tracking · quiet, report after.')+(lift!=='bench'?' Stand tall first 2s to calibrate speed.':'');
-      speak('Set started');loop();
+      $('dbg').style.display=(S.debug==='on')?'block':'none';
+      $('status').textContent='Hold your top position to calibrate…';
+      speak('Set started. Hold still.');loop();
     }catch(err){$('status').textContent='Camera blocked: '+err.message;$('status').className='statusline err';}
   }else{
     running=false;endSet();
     $('startBtn').textContent='Start set';$('startBtn').classList.remove('live');
+    $('dbg').style.display='none';$('calibbar').style.display='none';
     if(stream)stream.getTracks().forEach(t=>t.stop());
     ctx.clearRect(0,0,canvas.width,canvas.height);
   }
 };
 
-// ---- init ----
+// ===== init =====
 (async()=>{
   try{
     const files=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
