@@ -81,7 +81,7 @@
 <div class="wrap">
   <header>
     <div>
-      <div class="eyebrow">On-device AI · v0.4</div>
+      <div class="eyebrow">On-device AI · v0.4.1</div>
       <h1>Iron Coach</h1>
     </div>
   </header>
@@ -203,13 +203,28 @@ const KEYPTS={squat:[11,12,23,24,25,26,27,28],deadlift:[11,12,23,24,25,26,27,28]
 function isTeleport(raw){
   if(!prevRaw)return false;
   let maxMove=0;
-  KEYPTS[lift].forEach(i=>{const d=Math.hypot(raw[i].x-prevRaw[i].x,raw[i].y-prevRaw[i].y);if(d>maxMove)maxMove=d;});
+  KEYPTS[lift].forEach(i=>{
+    if((raw[i].visibility??1)<0.5)return;            // ignore far-side flicker
+    const d=Math.hypot(raw[i].x-prevRaw[i].x,raw[i].y-prevRaw[i].y);
+    if(d>maxMove)maxMove=d;});
   return maxMove>TELEPORT;
 }
 function smoothLm(L){if(!smooth){smooth=L.map(p=>({...p}));return smooth;}
   for(let i=0;i<L.length;i++){smooth[i].x+=(L[i].x-smooth[i].x)*ALPHA;smooth[i].y+=(L[i].y-smooth[i].y)*ALPHA;smooth[i].visibility=L[i].visibility;}
   return smooth;}
-function visibleEnough(L){const k=KEYPTS[lift];let v=0;k.forEach(i=>v+=L[i].visibility??1);return v/k.length>0.5;}
+function visibleEnough(L){
+  // use the MORE-visible side of each segment, so a true side-on view still passes
+  const pair=(a,b)=>Math.max(L[a].visibility??1,L[b].visibility??1);
+  const score = lift==='bench'
+    ? (pair(11,12)+pair(13,14)+pair(15,16))/3
+    : (pair(11,12)+pair(23,24)+pair(25,26)+pair(27,28))/4;
+  return score>0.4;
+}
+function legSide(L){
+  const lv=(L[23].visibility??1)+(L[25].visibility??1)+(L[27].visibility??1);
+  const rv=(L[24].visibility??1)+(L[26].visibility??1)+(L[28].visibility??1);
+  return lv>=rv?{sh:11,hip:23,knee:25,ank:27}:{sh:12,hip:24,knee:26,ank:28};
+}
 function benchSide(L){const lv=(L[11].visibility+L[13].visibility+L[15].visibility)/3;
   const rv=(L[12].visibility+L[14].visibility+L[16].visibility)/3;
   return lv>=rv?{sh:11,el:13,wr:15}:{sh:12,el:14,wr:16};}
@@ -226,15 +241,17 @@ const STABLE=3, MIN_DOWN_MS=350;
 // ===== metrics per frame =====
 function metrics(L){
   if(lift==='squat'){
-    const hip=mid(L[23],L[24]),knee=mid(L[25],L[26]),sh=mid(L[11],L[12]);
-    const prim=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
+    const g=legSide(L);
+    const hip=L[g.hip],knee=L[g.knee],sh=L[g.sh];
+    const prim=angle(hip,knee,L[g.ank]);
     const lean=Math.abs(Math.atan2(sh.x-hip.x,hip.y-sh.y))*180/Math.PI;
     const depthThr=S.depth==='comp'?-0.012:0.004;
     return {prim,lean,romGood:(knee.y-hip.y)<depthThr};
   }
   if(lift==='deadlift'){
-    const prim=(angle(L[11],L[23],L[25])+angle(L[12],L[24],L[26]))/2;
-    const kneeAng=(angle(L[23],L[25],L[27])+angle(L[24],L[26],L[28]))/2;
+    const g=legSide(L);
+    const prim=angle(L[g.sh],L[g.hip],L[g.knee]);
+    const kneeAng=angle(L[g.hip],L[g.knee],L[g.ank]);
     return {prim,kneeAng,romGood:prim>(base.top-8)&&kneeAng>160};
   }
   const s=benchSide(L);
@@ -344,6 +361,11 @@ function draw(L,stable){ctx.clearRect(0,0,canvas.width,canvas.height);if(!L)retu
 let lastVT=-1;
 function loop(){
   if(!running)return;
+  // failsafe: never let calibration hang — finalize after 3s no matter what
+  if(!base.ready && performance.now()-base.t0>3000){
+    base.top = base.maxPrim>0 ? clamp(base.maxPrim,CFG[lift].topClamp[0],CFG[lift].topClamp[1]) : CFG[lift].topDefault;
+    base.ready=true; $('calibbar').style.display='none'; speak('Go.');
+  }
   if(video.currentTime!==lastVT&&landmarker){
     lastVT=video.currentTime;
     const res=landmarker.detectForVideo(video,performance.now());
@@ -366,7 +388,7 @@ function loop(){
         $('dbg').textContent=`phase ${base.ready?st.phase:'CALIB'}\nprim  ${m.prim.toFixed(0)}°  top ${Math.round(base.top)}\nv     ${(velSm).toFixed(2)} m/s\ncand  D${st.candD} U${st.candU}${teleport?'\n⚠ teleport':''}`;
         if(st.frames.length<6000&&logentry)st.frames.push(logentry);
       }
-    } else { draw(null,true); if(++st.lost===25){$('framewarn').style.display='block';speak('Move into frame');} }
+    } else { draw(null,true); if(++st.lost>=25 && st.lost%25===0){$('framewarn').style.display='block';speak('Move into frame');} }
   }
   requestAnimationFrame(loop);
 }
